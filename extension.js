@@ -16,7 +16,7 @@
 
     Copyright 2016 Raphaël Rochet
     Copyright 2016 Julio Galvan
-	Copyright 2021 Jose Chapa
+    Copyright 2021 Jose Chapa
 */
 
 const Clutter = imports.gi.Clutter;

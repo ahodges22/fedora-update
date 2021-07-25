@@ -17,7 +17,7 @@
 
     Copyright 2016 Raphaël Rochet
     Copyright 2016 Julio Galvan
-	Copyright 2021 Jose Chapa
+    Copyright 2021 Jose Chapa
 -->
 <interface domain="fedora-update">
 <object class="GtkAdjustment" id="Adjust_1">
