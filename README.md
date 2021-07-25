@@ -32,6 +32,6 @@ Install Steam, Spotify, Codecs, Google Chrome, Numix Theme and Icons, Fedy, Subl
 
 
 ## Credits
-Forked from https://github.com/RaphaelRochet/arch-update
+Forked from https://github.com/RaphaelRochet/arch-update and https://github.com/julio641742/fedora-update
 
 Some parts have been taken from the Gnome Extension [apt-update-indicator](https://github.com/franglais125/apt-update-indicator)
