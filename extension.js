@@ -79,9 +79,21 @@ const FedoraUpdateIndicator = new Lang.Class({
 	_updateProcess_pid: null,
 	_updateList: [],
 
+	_getCustIcon: function(icon_name) {
+		// I did not find a way to lookup icon via Gio, so use Gtk
+		// I couldn't find why, but get_default is sometimes null, hence this additional test
+		// Imported from arch-update code
+		if (!USE_BUILDIN_ICONS && Gtk.IconTheme.get_default()) {
+			if (Gtk.IconTheme.get_default().has_icon(icon_name)) {
+				return Gio.icon_new_for_string( icon_name );
+			}
+		}
+		// Icon not available in theme, or user prefers built in icon
+		return Gio.icon_new_for_string( Me.dir.get_child('icons').get_path() + "/" + icon_name + ".svg" );
+	},	
+	
 	_init: function() {
 		this.parent(0.0, "FedoraUpdateIndicator");
-		Gtk.IconTheme.get_default().append_search_path(Me.dir.get_child('icons').get_path());
 
 		this.updateIcon = new St.Icon({icon_name: "emblem-default-symbolic", style_class: 'system-status-icon'});
 
