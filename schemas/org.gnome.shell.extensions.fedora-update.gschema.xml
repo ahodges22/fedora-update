@@ -14,6 +14,13 @@
         <description>Time to wait between two automatic checks</description>
         <range min="30" max="2000"/>
     </key>
+    
+    <key name="auto-expand-list" type="i">
+      <default>0</default>
+        <summary>Auto-open list submenu when updates count is lower than this number</summary>
+        <description></description>
+        <range min="0" max="100"/>
+    </key>
 
     <key name="always-visible" type="b">
       <default>true</default>
