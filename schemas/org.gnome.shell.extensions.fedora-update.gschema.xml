@@ -1,5 +1,12 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema id="org.gnome.shell.extensions.fedora-update" path="/org/gnome/shell/extensions/fedora-update/">
+    
+    <key type="i" name="boot-wait">
+        <default>15</default>
+        <summary>Time to wait before first check (seconds)</summary>
+        <description>A first check is made this number of seconds after startup</description>
+        <range min="5" max="5000"/>
+    </key>
 
     <key type="i" name="check-interval">
         <default>60</default>
