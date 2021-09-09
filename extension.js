@@ -59,6 +59,7 @@ let STOCK_LIST_CMD     = "/usr/bin/dnf list updates --security";
 let CHECK_CMD          = STOCK_CHECK_CMD;
 let UPDATE_CMD         = PREPEND_CMD + STOCK_UPDATE_CMD;
 let LIST_CMD	       = STOCK_LIST_CMD;
+let AUTO_EXPAND_LIST   = 0;
 
 /* Variables we want to keep when extension is disabled (eg during screen lock) */
 let UPDATES_PENDING    = -1;
