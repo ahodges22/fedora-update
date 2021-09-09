@@ -46,6 +46,7 @@ const _ = Gettext.gettext;
 /* Options */
 let ALWAYS_VISIBLE     = true;
 let SHOW_COUNT         = true;
+let BOOT_WAIT          = 15;      // 15s
 let CHECK_INTERVAL     = 60*60;   // 1h
 let NOTIFY             = false;
 let HOWMUCH            = 0;
@@ -62,6 +63,7 @@ let LIST_CMD	       = STOCK_LIST_CMD;
 let AUTO_EXPAND_LIST   = 0;
 
 /* Variables we want to keep when extension is disabled (eg during screen lock) */
+let FIRST_BOOT         = 1;
 let UPDATES_PENDING    = -1;
 let UPDATES_LIST       = [];
 
@@ -144,6 +146,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 		this.menu.addMenuItem(settingsMenuItem);
 
 		// Bind some events
+		this.menu.connect('open-state-changed', Lang.bind(this, this._onMenuOpened));
 		this.checkNowMenuItem.connect('activate', Lang.bind(this, this._checkUpdates));
 		cancelButton.connect('clicked', Lang.bind(this, this._cancelCheck));
 		settingsMenuItem.connect('activate', Lang.bind(this, this._openSettings));
@@ -165,9 +168,24 @@ const FedoraUpdateIndicator = new Lang.Class({
 		Util.spawn([ "gnome-shell-extension-prefs", Me.uuid ]);
 	},
 
+if (FIRST_BOOT) {
+			// Schedule first check only if this is the first extension load
+			// This won't be run again if extension is disabled/enabled (like when screen is locked)
+			let that = this;
+			this._FirstTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, BOOT_WAIT, function () {
+				that._checkUpdates();
+				that._FirstTimeoutId = null;
+				FIRST_BOOT = 0;
+				return false; // Run once
+			});
+		}
+
+	},	
+	
 	_applySettings: function() {
 		ALWAYS_VISIBLE = this._settings.get_boolean('always-visible');
 		SHOW_COUNT = this._settings.get_boolean('show-count');
+		BOOT_WAIT = this._settings.get_int('boot-wait');
 		CHECK_INTERVAL = 60 * this._settings.get_int('check-interval');
 		NOTIFY = this._settings.get_boolean('notify');
 		HOWMUCH = this._settings.get_int('howmuch');
@@ -236,6 +254,21 @@ const FedoraUpdateIndicator = new Lang.Class({
 		}
 	},
 
+	
+	_onMenuOpened: function() {
+		// This event is fired when menu is shown or hidden
+		// Only open the submenu if the menu is being opened and there is something to show
+		this._checkAutoExpandList();
+	},
+
+	_checkAutoExpandList: function() {
+		if (this.menu.isOpen && UPDATES_PENDING > 0 && UPDATES_PENDING <= AUTO_EXPAND_LIST) {
+			this.menuExpander.setSubmenuShown(true);
+		} else {
+			this.menuExpander.setSubmenuShown(false);
+		}
+	},
+	
 	_updateStatus: function(updatesCount) {
 		updatesCount = typeof updatesCount === 'number' ? updatesCount : UPDATES_PENDING;
 		if (updatesCount > 0) {
@@ -290,6 +323,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 			}
 		}
 		UPDATES_PENDING = updatesCount;
+		this._checkAutoExpandList();
 		this._checkShowHide();
 	},
 
