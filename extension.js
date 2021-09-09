@@ -162,13 +162,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 		this._updateList = UPDATES_LIST;
 		this._updateStatus(UPDATES_PENDING);
 		this._readUpdates();
-	},
-
-	_openSettings: function () {
-		Util.spawn([ "gnome-shell-extension-prefs", Me.uuid ]);
-	},
-
-if (FIRST_BOOT) {
+		
+		
+		if (FIRST_BOOT) {
 			// Schedule first check only if this is the first extension load
 			// This won't be run again if extension is disabled/enabled (like when screen is locked)
 			let that = this;
@@ -180,7 +176,13 @@ if (FIRST_BOOT) {
 			});
 		}
 
-	},	
+	},
+	
+
+	_openSettings: function () {
+		Util.spawn([ "gnome-shell-extension-prefs", Me.uuid ]);
+	},
+	
 	
 	_applySettings: function() {
 		ALWAYS_VISIBLE = this._settings.get_boolean('always-visible');
