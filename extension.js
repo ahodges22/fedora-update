@@ -46,6 +46,7 @@ const _ = Gettext.gettext;
 /* Options */
 let ALWAYS_VISIBLE     = true;
 let SHOW_COUNT         = true;
+let BOOT_WAIT          = 15;      // 15s
 let CHECK_INTERVAL     = 60*60;   // 1h
 let NOTIFY             = false;
 let HOWMUCH            = 0;
@@ -59,8 +60,10 @@ let STOCK_LIST_CMD     = "/usr/bin/dnf list updates";
 let CHECK_CMD          = STOCK_CHECK_CMD;
 let UPDATE_CMD         = PREPEND_CMD + STOCK_UPDATE_CMD;
 let LIST_CMD	       = STOCK_LIST_CMD;
+let AUTO_EXPAND_LIST   = 0;
 
 /* Variables we want to keep when extension is disabled (eg during screen lock) */
+let FIRST_BOOT         = 1;
 let UPDATES_PENDING    = -1;
 let UPDATES_LIST       = [];
 
@@ -79,9 +82,21 @@ const FedoraUpdateIndicator = new Lang.Class({
 	_updateProcess_pid: null,
 	_updateList: [],
 
+	_getCustIcon: function(icon_name) {
+		// I did not find a way to lookup icon via Gio, so use Gtk
+		// I couldn't find why, but get_default is sometimes null, hence this additional test
+		// Imported from arch-update code
+		if (!USE_BUILDIN_ICONS && Gtk.IconTheme.get_default()) {
+			if (Gtk.IconTheme.get_default().has_icon(icon_name)) {
+				return Gio.icon_new_for_string( icon_name );
+			}
+		}
+		// Icon not available in theme, or user prefers built in icon
+		return Gio.icon_new_for_string( Me.dir.get_child('icons').get_path() + "/" + icon_name + ".svg" );
+	},	
+	
 	_init: function() {
 		this.parent(0.0, "FedoraUpdateIndicator");
-		Gtk.IconTheme.get_default().append_search_path(Me.dir.get_child('icons').get_path());
 
 		this.updateIcon = new St.Icon({icon_name: "emblem-default-symbolic", style_class: 'system-status-icon'});
 
@@ -131,6 +146,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 		this.menu.addMenuItem(settingsMenuItem);
 
 		// Bind some events
+		this.menu.connect('open-state-changed', Lang.bind(this, this._onMenuOpened));
 		this.checkNowMenuItem.connect('activate', Lang.bind(this, this._checkUpdates));
 		cancelButton.connect('clicked', Lang.bind(this, this._cancelCheck));
 		settingsMenuItem.connect('activate', Lang.bind(this, this._openSettings));
@@ -146,15 +162,32 @@ const FedoraUpdateIndicator = new Lang.Class({
 		this._updateList = UPDATES_LIST;
 		this._updateStatus(UPDATES_PENDING);
 		this._readUpdates();
+		
+		
+		if (FIRST_BOOT) {
+			// Schedule first check only if this is the first extension load
+			// This won't be run again if extension is disabled/enabled (like when screen is locked)
+			let that = this;
+			this._FirstTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, BOOT_WAIT, function () {
+				that._checkUpdates();
+				that._FirstTimeoutId = null;
+				FIRST_BOOT = 0;
+				return false; // Run once
+			});
+		}
+
 	},
+	
 
 	_openSettings: function () {
 		Util.spawn([ "gnome-shell-extension-prefs", Me.uuid ]);
 	},
-
+	
+	
 	_applySettings: function() {
 		ALWAYS_VISIBLE = this._settings.get_boolean('always-visible');
 		SHOW_COUNT = this._settings.get_boolean('show-count');
+		BOOT_WAIT = this._settings.get_int('boot-wait');
 		CHECK_INTERVAL = 60 * this._settings.get_int('check-interval');
 		NOTIFY = this._settings.get_boolean('notify');
 		HOWMUCH = this._settings.get_int('howmuch');
@@ -223,6 +256,21 @@ const FedoraUpdateIndicator = new Lang.Class({
 		}
 	},
 
+	
+	_onMenuOpened: function() {
+		// This event is fired when menu is shown or hidden
+		// Only open the submenu if the menu is being opened and there is something to show
+		this._checkAutoExpandList();
+	},
+
+	_checkAutoExpandList: function() {
+		if (this.menu.isOpen && UPDATES_PENDING > 0 && UPDATES_PENDING <= AUTO_EXPAND_LIST) {
+			this.menuExpander.setSubmenuShown(true);
+		} else {
+			this.menuExpander.setSubmenuShown(false);
+		}
+	},
+	
 	_updateStatus: function(updatesCount) {
 		updatesCount = typeof updatesCount === 'number' ? updatesCount : UPDATES_PENDING;
 		if (updatesCount > 0) {
@@ -277,6 +325,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 			}
 		}
 		UPDATES_PENDING = updatesCount;
+		this._checkAutoExpandList();
 		this._checkShowHide();
 	},
 

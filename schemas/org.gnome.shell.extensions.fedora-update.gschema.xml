@@ -1,11 +1,25 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema id="org.gnome.shell.extensions.fedora-update" path="/org/gnome/shell/extensions/fedora-update/">
+    
+    <key type="i" name="boot-wait">
+        <default>15</default>
+        <summary>Time to wait before first check (seconds)</summary>
+        <description>A first check is made this number of seconds after startup</description>
+        <range min="5" max="5000"/>
+    </key>
 
     <key type="i" name="check-interval">
         <default>60</default>
         <summary>Interval between updates check (minutes)</summary>
         <description>Time to wait between two automatic checks</description>
         <range min="30" max="2000"/>
+    </key>
+    
+    <key name="auto-expand-list" type="i">
+      <default>0</default>
+        <summary>Auto-open list submenu when updates count is lower than this number</summary>
+        <description></description>
+        <range min="0" max="100"/>
     </key>
 
     <key name="always-visible" type="b">
