@@ -20,7 +20,6 @@
 */
 
 const Clutter = imports.gi.Clutter;
-const Lang = imports.lang;
 
 const St = imports.gi.St;
 const GObject = imports.gi.GObject;
@@ -72,32 +71,21 @@ function init() {
 	Utils.initTranslations("fedora-update");
 }
 
-const FedoraUpdateIndicator = new Lang.Class({
-	Name: 'FedoraUpdateIndicator',
-	Extends: PanelMenu.Button,
 
-	_TimeoutId: null,
-	_updateProcess_sourceId: null,
-	_updateProcess_stream: null,
-	_updateProcess_pid: null,
-	_updateList: [],
+const FedoraUpdateIndicator = GObject.registerClass(
+	{
+		TimeoutId: null,
+		_FirstTimeoutId: null,
+		_updateProcess_sourceId: null,
+		_updateProcess_stream: null,
+		_updateProcess_pid: null,
+		_updateList: [],
+	},
 
-	_getCustIcon: function(icon_name) {
-		// I did not find a way to lookup icon via Gio, so use Gtk
-		// I couldn't find why, but get_default is sometimes null, hence this additional test
-		// Imported from arch-update code
-		if (!USE_BUILDIN_ICONS && Gtk.IconTheme.get_default()) {
-			if (Gtk.IconTheme.get_default().has_icon(icon_name)) {
-				return Gio.icon_new_for_string( icon_name );
-			}
-		}
-		// Icon not available in theme, or user prefers built in icon
-		return Gio.icon_new_for_string( Me.dir.get_child('icons').get_path() + "/" + icon_name + ".svg" );
-	},	
-	
-	_init: function() {
-		this.parent(0.0, "FedoraUpdateIndicator");
+class FedoraUpdateIndicator extends PanelMenu.Button {
 
+	_init() {
+		super._init(0);
 		this.updateIcon = new St.Icon({icon_name: "emblem-default-symbolic", style_class: 'system-status-icon'});
 
 		let box = new St.BoxLayout({ vertical: false, style_class: 'panel-status-menu-box' });
@@ -146,15 +134,15 @@ const FedoraUpdateIndicator = new Lang.Class({
 		this.menu.addMenuItem(settingsMenuItem);
 
 		// Bind some events
-		this.menu.connect('open-state-changed', Lang.bind(this, this._onMenuOpened));
-		this.checkNowMenuItem.connect('activate', Lang.bind(this, this._checkUpdates));
-		cancelButton.connect('clicked', Lang.bind(this, this._cancelCheck));
-		settingsMenuItem.connect('activate', Lang.bind(this, this._openSettings));
-		this.updateNowMenuItem.connect('activate', Lang.bind(this, this._updateNow));
+		this.menu.connect('open-state-changed', this._onMenuOpened.bind(this));
+		this.checkNowMenuItem.connect('activate', this._checkUpdates.bind(this));
+		cancelButton.connect('clicked', this._cancelCheck.bind(this));
+		settingsMenuItem.connect('activate', this._openSettings.bind(this));
+		this.updateNowMenuItem.connect('activate', this._updateNow.bind(this));
 
 		// Load settings
 		this._settings = Utils.getSettings();
-		this._settingsChangedId = this._settings.connect('changed', Lang.bind(this, this._applySettings));
+		this._settingsChangedId = this._settings.connect('changed', this._applySettings.bind(this));
 		this._applySettings();
 		this._showChecking(false);
 
@@ -176,15 +164,26 @@ const FedoraUpdateIndicator = new Lang.Class({
 			});
 		}
 
-	},
-	
+	}
 
-	_openSettings: function () {
+	_getCustIcon(icon_name) {
+		// I did not find a way to lookup icon via Gio, so use Gtk
+		// I couldn't find why, but get_default is sometimes null, hence this additional test
+		// Imported from arch-update code
+		if (!USE_BUILDIN_ICONS && Gtk.IconTheme.get_default()) {
+			if (Gtk.IconTheme.get_default().has_icon(icon_name)) {
+				return Gio.icon_new_for_string( icon_name );
+			}
+		}
+		// Icon not available in theme, or user prefers built in icon
+		return Gio.icon_new_for_string( Me.dir.get_child('icons').get_path() + "/" + icon_name + ".svg" );
+	}
+
+	_openSettings() {
 		Util.spawn([ "gnome-shell-extension-prefs", Me.uuid ]);
-	},
-	
-	
-	_applySettings: function() {
+	}
+
+	_applySettings() {
 		ALWAYS_VISIBLE = this._settings.get_boolean('always-visible');
 		SHOW_COUNT = this._settings.get_boolean('show-count');
 		BOOT_WAIT = this._settings.get_int('boot-wait');
@@ -216,9 +215,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 			that._checkUpdates();
 			return true;
 		});
-	},
+	}
 
-	destroy: function() {
+	destroy() {
 		if (this._updateProcess_sourceId) {
 			// We leave the checkupdate process end by itself but undef handles to avoid zombies
 			GLib.source_remove(this._updateProcess_sourceId);
@@ -230,9 +229,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 			this._TimeoutId = null;
 		}
 		this.parent();
-	},
+	}
 
-	_checkShowHide: function() {
+	_checkShowHide() {
 		if ( UPDATES_PENDING == -3 ) {
 			// Do not apply visibility change while checking for updates
 			return;
@@ -243,9 +242,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 			this.actor.visible = true;
 		}
 		this.label.visible = SHOW_COUNT;
-	},
-	
-	_showChecking: function(isChecking) {
+	}
+
+	_showChecking(isChecking) {
 		if (isChecking == true) {
 			this.updateIcon.set_icon_name('emblem-synchronizing-symbolic');
 			this.checkNowMenuContainer.actor.visible = false;
@@ -254,24 +253,23 @@ const FedoraUpdateIndicator = new Lang.Class({
 			this.checkNowMenuContainer.actor.visible = true;;
 			this.checkingMenuItem.actor.visible = false;;
 		}
-	},
+	}
 
-	
-	_onMenuOpened: function() {
+	_onMenuOpened() {
 		// This event is fired when menu is shown or hidden
 		// Only open the submenu if the menu is being opened and there is something to show
 		this._checkAutoExpandList();
-	},
+	}
 
-	_checkAutoExpandList: function() {
+	_checkAutoExpandList() {
 		if (this.menu.isOpen && UPDATES_PENDING > 0 && UPDATES_PENDING <= AUTO_EXPAND_LIST) {
 			this.menuExpander.setSubmenuShown(true);
 		} else {
 			this.menuExpander.setSubmenuShown(false);
 		}
-	},
-	
-	_updateStatus: function(updatesCount) {
+	}
+
+	_updateStatus(updatesCount) {
 		updatesCount = typeof updatesCount === 'number' ? updatesCount : UPDATES_PENDING;
 		if (updatesCount > 0) {
 			// Updates pending
@@ -327,9 +325,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 		UPDATES_PENDING = updatesCount;
 		this._checkAutoExpandList();
 		this._checkShowHide();
-	},
+	}
 
-	_updateMenuExpander: function(enabled, label) {
+	_updateMenuExpander(enabled, label) {
 		if (label == "") {
 			// No text, hide the menuitem
 			this.menuExpander.actor.visible = false;
@@ -343,10 +341,10 @@ const FedoraUpdateIndicator = new Lang.Class({
 
 		// 'Update now' visibility is linked so let's save a few lines and set it here
 		this.updateNowMenuItem.actor.reactive = enabled;
-	},
+	}
 
 
-    _updateNow: function () {
+    _updateNow() {
         this.menu.close();
         if(this._updateProcess_sourceId) {
             // A check is running ! Maybe we should kill it and run another one ?
@@ -359,14 +357,15 @@ const FedoraUpdateIndicator = new Lang.Class({
             let [res, pid, in_fd, out_fd, err_fd]  = GLib.spawn_async_with_pipes(null, argvp, null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
 
             // We will process the output at once when it's done
-            this._updateProcess_sourceId = GLib.child_watch_add(0, pid, Lang.bind(this, this._updateNowEnd));
+			this._updateProcess_sourceId = GLib.child_watch_add(0, pid, () => {this._updateNowEnd()} );
+
             this._updateProcess_pid = pid;
         } catch (err) {
             // TODO log err.message.toString() ?
         }
-    },
+    }
 
-    _updateNowEnd: function() {
+    _updateNowEnd() {
         // Free resources
         if (this._updateProcess_sourceId)
             GLib.source_remove(this._updateProcess_sourceId);
@@ -377,9 +376,9 @@ const FedoraUpdateIndicator = new Lang.Class({
 
         // Update indicator
         this._readUpdates();
-    },
+    }
 
-    _readUpdates: function() {
+    _readUpdates() {
         // Run asynchronously, to avoid  shell freeze - even for a 1s check
         try {
             // Parse check command line
@@ -391,16 +390,16 @@ const FedoraUpdateIndicator = new Lang.Class({
                 base_stream: new Gio.UnixInputStream({fd: out_fd})
             });
             // We will process the output at once when it's done
-            this._updateProcess_sourceId = GLib.child_watch_add(0, pid, Lang.bind(this, this._listUpgrades));
+			this._updateProcess_sourceId = GLib.child_watch_add(0, pid, () => {this._listUpgrades()} );
             this._updateProcess_pid = pid;
         } catch (err) {
             this._showChecking(false);
             // TODO log err.message.toString() ?
             this._updateStatus(-2);
         }
-    },
+    }
 
-    _listUpgrades: function() {
+    _listUpgrades() {
         // Read the buffered output
         let updateList = [];
         let out, size;
@@ -428,9 +427,9 @@ const FedoraUpdateIndicator = new Lang.Class({
         });
         this._updateList = updateList;
         this._listUpgradesEnd();
-    },
+    }
 
-    _listUpgradesEnd: function() {
+    _listUpgradesEnd() {
         // Free resources
         this._updateProcess_stream.close(null);
         this._updateProcess_stream = null;
@@ -441,9 +440,9 @@ const FedoraUpdateIndicator = new Lang.Class({
         // Update indicator
         this._showChecking(false);
         this._updateStatus(this._updateList.length);
-    },
+    }
 
-    _checkUpdates: function() {
+    _checkUpdates() {
         this.menu.close();
         if(this._updateProcess_sourceId) {
             // A check is already running ! Maybe we should kill it and run another one ?
@@ -458,23 +457,23 @@ const FedoraUpdateIndicator = new Lang.Class({
             let [res, pid, in_fd, out_fd, err_fd]  = GLib.spawn_async_with_pipes(null, argvp, null, GLib.SpawnFlags.DO_NOT_REAP_CHILD, null);
 
             // We will process the output at once when it's done
-            this._updateProcess_sourceId = GLib.child_watch_add(0, pid, Lang.bind(this, this._checkUpdatesEnd));
+			this._updateProcess_sourceId = GLib.child_watch_add(0, pid, () => {this._checkUpdatesEnd()} );
             this._updateProcess_pid = pid;
         } catch (err) {
             this._showChecking(false);
             // TODO log err.message.toString() ?
             this._updateStatus(-2);
         }
-    },
+    }
 
-    _cancelCheck: function() {
+    _cancelCheck() {
         if (this._updateProcess_pid == null) { return; };
         Util.spawnCommandLine( "kill " + this._updateProcess_pid );
         this._updateProcess_pid = null; // Prevent double kill
         this._checkUpdatesEnd();
-    },
+    }
 
-    _checkUpdatesEnd: function() {
+    _checkUpdatesEnd() {
         // Free resources
         if (this._updateProcess_sourceId)
             GLib.source_remove(this._updateProcess_sourceId);
@@ -482,9 +481,9 @@ const FedoraUpdateIndicator = new Lang.Class({
         this._updateProcess_pid = null;
         // Update indicator
         this._readUpdates()
-    },
+    }
 
-	_showNotification: function(title, message, removeAction) {
+	_showNotification(title, message, removeAction) {
 		if (this._notifSource == null) {
 			// We have to prepare this only once
 			this._notifSource = new MessageTray.SystemNotificationSource();
@@ -492,7 +491,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 				return new St.Icon({ icon_name: 'emblem-synchronizing-symbolic' });
 			};
 			// Take care of note leaving unneeded sources
-			this._notifSource.connect('destroy', Lang.bind(this, function() {this._notifSource = null;}));
+			this._notifSource.connect('destroy', ()=>{this._notifSource = null;});
 			Main.messageTray.add(this._notifSource);
 		}
 		let notification = null;
@@ -501,7 +500,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 		if (this._notifSource.notifications.length == 0) {
 			notification = new MessageTray.Notification(this._notifSource, title, message);
             if(!removeAction) {
-            	notification.addAction( _('Update now') , Lang.bind(this, function() {this._updateNow()}) );
+				notification.addAction( _('Update now') , ()=>{this._updateNow();} );
             }
 		} else {
 			notification = this._notifSource.notifications[0];
@@ -509,8 +508,7 @@ const FedoraUpdateIndicator = new Lang.Class({
 		}
 		notification.setTransient(TRANSIENT);
 		this._notifSource.notify(notification);
-	},
-
+	}
 
 });
 
