@@ -228,6 +228,10 @@ class FedoraUpdateIndicator extends PanelMenu.Button {
 			GLib.source_remove(this._TimeoutId);
 			this._TimeoutId = null;
 		}
+		if (this._FirstTimeoutId) {
+			GLib.source_remove(this._FirstTimeoutId);
+			this._FirstTimeoutId = null;
+		}
 		this.parent();
 	}
 
