@@ -218,21 +218,32 @@ class FedoraUpdateIndicator extends PanelMenu.Button {
 	}
 
 	destroy() {
+		this._settings.disconnect( this._settingsChangedId );
+		if (this._notifSource) {
+			// Delete the notification source, which lay still have a notification shown
+			this._notifSource.destroy();
+			this._notifSource = null;
+		};
+		if (this.monitor) {
+			// Stop spying on pacman local dir
+			this.monitor.cancel();
+			this.monitor = null;
+		}
 		if (this._updateProcess_sourceId) {
 			// We leave the checkupdate process end by itself but undef handles to avoid zombies
 			GLib.source_remove(this._updateProcess_sourceId);
 			this._updateProcess_sourceId = null;
 			this._updateProcess_stream = null;
 		}
-		if (this._TimeoutId) {
-			GLib.source_remove(this._TimeoutId);
-			this._TimeoutId = null;
-		}
 		if (this._FirstTimeoutId) {
 			GLib.source_remove(this._FirstTimeoutId);
 			this._FirstTimeoutId = null;
 		}
-		this.parent();
+		if (this._TimeoutId) {
+			GLib.source_remove(this._TimeoutId);
+			this._TimeoutId = null;
+		}
+		super.destroy();
 	}
 
 	_checkShowHide() {
