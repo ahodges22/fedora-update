@@ -295,7 +295,7 @@
 						    <property name="visible">True</property>
 						    <property name="can_focus">True</property>
 						    <property name="receives_default">True</property>
-						    <property name="uri">https://github.com/pepe386/fedora-update</property>
+						    <property name="uri">https://github.com/ahodges22/fedora-update</property>
 							<layout>
 								<property name="column">0</property>
 								<property name="row">1</property>

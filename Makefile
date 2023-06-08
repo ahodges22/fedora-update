@@ -1,11 +1,11 @@
 # Basic Makefile
 
-UUID = fedora-update@pepe386
+UUID = fedora-update@ahodges22
 BASE_MODULES = extension.js LICENCE.txt metadata.json prefs.js prefs.xml stylesheet.css utils.js org.freedesktop.policykit.pkexec.fedora-update.policy
 TOLOCALIZE = extension.js
 MSGSRC = $(wildcard po/*.po)
 INSTALLBASE = ~/.local/share/gnome-shell/extensions
-INSTALLNAME = fedora-update@pepe386
+INSTALLNAME = fedora-update@ahodges22
 
 # The command line passed variable VERSION is used to set the version string 
 # in the metadata and in the generated zip-file. If no VERSION is passed, the

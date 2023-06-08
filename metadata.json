@@ -1,8 +1,11 @@
 {
   "description": "Update indicator for Fedora Linux and GNOME Shell.",
   "name": "Fedora Linux Updates Indicator",
-  "shell-version": [ "40", "41", "42" ],
-  "url": "https://github.com/pepe386/fedora-update",
-  "uuid": "fedora-update@pepe386",
+  "shell-version": [
+    "43",
+    "44"
+  ],
+  "url": "https://github.com/ahodges22/fedora-update",
+  "uuid": "fedora-update@ahodges22",
   "version": 5
 }
